@@ -2,9 +2,11 @@ import { useQuery } from '@tanstack/react-query';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { getDashboardStats } from '../../services/dashboardService';
 import { getProducts } from '../../services/productService';
+import { useCurrency } from '../../hooks/useCurrency';
 import { Card, PageHeader, Spinner } from '../../components/ui';
 
 export default function Analytics() {
+  const formatPrice = useCurrency();
   const { data, isLoading } = useQuery({ queryKey: ['dashboard-stats'], queryFn: getDashboardStats });
   const { data: topProducts } = useQuery({
     queryKey: ['analytics-top-products'],
@@ -57,7 +59,7 @@ export default function Analytics() {
             {topProducts?.products.map((p) => (
               <li key={p._id} className="flex items-center justify-between py-2">
                 <span>{p.name}</span>
-                <span className="text-gray-500">${p.price.toFixed(2)}</span>
+                <span className="text-gray-500">{formatPrice(p.price)}</span>
               </li>
             ))}
           </ul>

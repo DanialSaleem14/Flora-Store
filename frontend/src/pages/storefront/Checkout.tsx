@@ -2,6 +2,7 @@ import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useCart } from '../../context/CartContext';
+import { useCurrency } from '../../hooks/useCurrency';
 import { Field, Input, Button, Card } from '../../components/ui';
 
 interface CheckoutForm {
@@ -16,6 +17,7 @@ interface CheckoutForm {
 
 export default function Checkout() {
   const { items, subtotal, total, clearCart } = useCart();
+  const formatPrice = useCurrency();
   const navigate = useNavigate();
   const {
     register,
@@ -99,16 +101,16 @@ export default function Checkout() {
               <span>
                 {item.name} × {item.quantity}
               </span>
-              <span>${(item.price * item.quantity).toFixed(2)}</span>
+              <span>{formatPrice(item.price * item.quantity)}</span>
             </div>
           ))}
           <div className="flex justify-between border-t border-gray-200 pt-2 text-sm">
             <span>Subtotal</span>
-            <span>${subtotal.toFixed(2)}</span>
+            <span>{formatPrice(subtotal)}</span>
           </div>
           <div className="flex justify-between font-semibold">
             <span>Total</span>
-            <span>${total.toFixed(2)}</span>
+            <span>{formatPrice(total)}</span>
           </div>
         </Card>
       </div>

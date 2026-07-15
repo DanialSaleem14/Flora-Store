@@ -1,53 +1,46 @@
-# Deploying Flora to production
+# Deploying Flora
 
-The frontend is already live on Firebase Hosting: **https://flora-store-c4f9e.web.app**
+100% Firebase — no separate server to deploy or pay for. Firebase Hosting serves the static frontend; Firestore, Auth, and Storage handle everything else directly from the browser.
 
-It won't be fully functional yet — nothing that talks to the API (products, login, categories, etc.) will work — until the backend is deployed somewhere publicly reachable and MongoDB is a real hosted database instead of the local Docker container. Here's the fastest free path.
+## First-time setup (already done for flora-store-c4f9e)
 
-## 1. MongoDB Atlas (free database)
+1. Firebase Console → **Authentication** → Get started → enable **Email/Password**.
+2. Firebase Console → **Firestore Database** → Create database (pick a region — permanent choice).
+3. Firebase Console → **Storage** → Get started, then paste `firebase-storage.rules` into Storage → Rules → Publish.
+4. `firebase deploy --only firestore` — publishes `firestore.rules` + `firestore.indexes.json`.
 
-1. Sign up at [mongodb.com/cloud/atlas](https://www.mongodb.com/cloud/atlas) (no credit card needed for the free M0 tier).
-2. Create a free M0 cluster (any region close to you).
-3. **Database Access** → add a database user with a password.
-4. **Network Access** → add `0.0.0.0/0` (allow from anywhere) — Render's servers have dynamic IPs, so this is the simplest option for a small store.
-5. **Connect** → "Drivers" → copy the connection string, looks like:
-   `mongodb+srv://<user>:<password>@cluster0.xxxxx.mongodb.net/store_builder?retryWrites=true&w=majority`
-
-## 2. Render (free backend hosting)
-
-`backend/render.yaml` is already set up as a Render "Blueprint" — the fastest path:
-
-1. Push this repo to GitHub (if it isn't already).
-2. Go to [dashboard.render.com](https://dashboard.render.com) → **New** → **Blueprint** → connect the repo.
-3. Render will read `backend/render.yaml` and prompt you for the two secret values it doesn't auto-fill:
-   - `MONGO_URI` — paste the Atlas connection string from step 1.
-   - `FIREBASE_API_KEY` — from `backend/.env` (the same value used for the seed script).
-4. Deploy. Render gives you a URL like `https://flora-store-api.onrender.com`.
-
-Note: Render's free tier spins the service down after ~15 minutes of inactivity — the first request after a quiet period takes 30–60s to wake it up. Fine for a small store getting started; upgrade to a paid plan later if that's a problem.
-
-## 3. Point the frontend at the real backend
-
-Once Render gives you the live API URL:
-
-```bash
-# frontend/.env
-VITE_API_URL=https://flora-store-api.onrender.com/api
-```
-
-Then rebuild and redeploy to Firebase Hosting:
+## Every deploy after that
 
 ```bash
 cd frontend
-npm run build
+npm install
+npm run build          # runs scripts/generate-seo-files.mjs (prebuild), then tsc + vite build
 cd ..
-firebase deploy --only hosting --project flora-store-c4f9e
+firebase deploy --only hosting
 ```
 
-## 4. Update CORS
+Or deploy hosting + Firestore rules + Storage rules together:
 
-`backend/.env` on Render needs `CLIENT_URL=https://flora-store-c4f9e.web.app` (already set in `render.yaml`) so the deployed backend accepts requests from the deployed frontend.
+```bash
+firebase deploy --only hosting,firestore,storage
+```
 
----
+Live URL: **https://flora-store-c4f9e.web.app**
 
-Everything above is optional for local development — `npm run dev` in both `backend/` and `frontend/` against the local Mongo container works without any of this.
+## Environment variables
+
+`frontend/.env` needs the Firebase web app config (Project Settings → Your apps) plus `VITE_CLIENT_URL` (used by the sitemap generator). See `frontend/.env.example`.
+
+## Local development
+
+```bash
+cd frontend
+npm install
+npm run dev             # http://localhost:5173, talks directly to the same live Firebase project
+```
+
+There's no local backend to run — `npm run dev` in `frontend/` is the entire local dev setup.
+
+## One-time data migration script
+
+`scripts/migrate-to-firestore.mjs` was used once to move Flora's original data from a local MongoDB into Firestore. It's safe to leave in the repo for reference but won't need to run again — Firestore is now the source of truth.

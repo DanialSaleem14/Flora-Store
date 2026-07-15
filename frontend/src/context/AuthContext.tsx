@@ -30,7 +30,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 // Authentication (login/signup/session/password reset) is entirely handled by
 // Firebase Auth on the client. This context just mirrors the Firebase session
-// state and syncs it with our backend's app-specific profile (role, name)
+// state and syncs it with the Firestore app-specific profile (role, name)
 // keyed by the Firebase UID.
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({ user: null, loading: true });

@@ -1,49 +1,57 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import * as productService from '../../services/productService';
+import type { ProductPage } from '../../services/productService';
 import { getErrorMessage } from '../../services/api';
+import { useCurrency } from '../../hooks/useCurrency';
 import { Button, EmptyState, PageHeader, Spinner } from '../../components/ui';
+import type { Product } from '../../types';
 
 export default function AdminProducts() {
-  const qc = useQueryClient();
-  const [page, setPage] = useState(1);
+  const formatPrice = useCurrency();
   const [search, setSearch] = useState('');
+  const [products, setProducts] = useState<Product[]>([]);
+  const [cursor, setCursor] = useState<ProductPage['nextCursor']>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [busyId, setBusyId] = useState<string | null>(null);
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['admin-products', page, search],
-    queryFn: () => productService.getProducts({ page, limit: 10, includeUnpublished: true, search: search || undefined }),
-  });
+  const reload = useCallback(async () => {
+    setLoading(true);
+    const res = await productService.getProducts({ limit: 10, includeUnpublished: true, search: search || undefined });
+    setProducts(res.products);
+    setCursor(res.nextCursor);
+    setHasMore(res.hasMore);
+    setLoading(false);
+  }, [search]);
 
-  const invalidate = () => qc.invalidateQueries({ queryKey: ['admin-products'] });
+  useEffect(() => {
+    reload();
+  }, [reload]);
 
-  const deleteMutation = useMutation({
-    mutationFn: productService.deleteProduct,
-    onSuccess: () => {
-      invalidate();
-      toast.success('Product deleted');
-    },
-    onError: (err) => toast.error(getErrorMessage(err)),
-  });
+  const loadMore = async () => {
+    setLoadingMore(true);
+    const res = await productService.getProducts({ limit: 10, includeUnpublished: true, search: search || undefined, cursor });
+    setProducts((prev) => [...prev, ...res.products]);
+    setCursor(res.nextCursor);
+    setHasMore(res.hasMore);
+    setLoadingMore(false);
+  };
 
-  const duplicateMutation = useMutation({
-    mutationFn: productService.duplicateProduct,
-    onSuccess: () => {
-      invalidate();
-      toast.success('Product duplicated');
-    },
-    onError: (err) => toast.error(getErrorMessage(err)),
-  });
-
-  const archiveMutation = useMutation({
-    mutationFn: productService.toggleArchiveProduct,
-    onSuccess: () => {
-      invalidate();
-      toast.success('Product updated');
-    },
-    onError: (err) => toast.error(getErrorMessage(err)),
-  });
+  const runAction = async (id: string, action: () => Promise<unknown>, successMsg: string) => {
+    setBusyId(id);
+    try {
+      await action();
+      toast.success(successMsg);
+      await reload();
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setBusyId(null);
+    }
+  };
 
   return (
     <div>
@@ -58,17 +66,14 @@ export default function AdminProducts() {
 
       <input
         value={search}
-        onChange={(e) => {
-          setSearch(e.target.value);
-          setPage(1);
-        }}
+        onChange={(e) => setSearch(e.target.value)}
         placeholder="Search products…"
         className="mb-4 w-full max-w-xs rounded-md border border-gray-300 px-3 py-2 text-sm"
       />
 
-      {isLoading ? (
+      {loading ? (
         <Spinner />
-      ) : !data?.products.length ? (
+      ) : !products.length ? (
         <EmptyState title="No products yet" subtitle="Add your first product to get started." />
       ) : (
         <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
@@ -83,7 +88,7 @@ export default function AdminProducts() {
               </tr>
             </thead>
             <tbody>
-              {data.products.map((p) => (
+              {products.map((p) => (
                 <tr key={p._id} className="border-b border-gray-100 last:border-0">
                   <td className="flex items-center gap-3 px-4 py-3">
                     <img
@@ -94,7 +99,7 @@ export default function AdminProducts() {
                     <span className="font-medium">{p.name}</span>
                     {p.featured && <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-700">Featured</span>}
                   </td>
-                  <td className="px-4 py-3">${p.price.toFixed(2)}</td>
+                  <td className="px-4 py-3">{formatPrice(p.price)}</td>
                   <td className="px-4 py-3">{p.stock}</td>
                   <td className="px-4 py-3">
                     {p.archived ? (
@@ -109,17 +114,26 @@ export default function AdminProducts() {
                     <Link to={`/admin/products/${p._id}/edit`} className="text-xs underline">
                       Edit
                     </Link>
-                    <button onClick={() => duplicateMutation.mutate(p._id)} className="text-xs underline">
+                    <button
+                      disabled={busyId === p._id}
+                      onClick={() => runAction(p._id, () => productService.duplicateProduct(p._id), 'Product duplicated')}
+                      className="text-xs underline disabled:opacity-50"
+                    >
                       Duplicate
                     </button>
-                    <button onClick={() => archiveMutation.mutate(p._id)} className="text-xs underline">
+                    <button
+                      disabled={busyId === p._id}
+                      onClick={() => runAction(p._id, () => productService.toggleArchiveProduct(p._id), 'Product updated')}
+                      className="text-xs underline disabled:opacity-50"
+                    >
                       {p.archived ? 'Unarchive' : 'Archive'}
                     </button>
                     <button
+                      disabled={busyId === p._id}
                       onClick={() => {
-                        if (confirm('Delete this product?')) deleteMutation.mutate(p._id);
+                        if (confirm('Delete this product?')) runAction(p._id, () => productService.deleteProduct(p._id), 'Product deleted');
                       }}
-                      className="text-xs text-red-600 underline"
+                      className="text-xs text-red-600 underline disabled:opacity-50"
                     >
                       Delete
                     </button>
@@ -131,17 +145,11 @@ export default function AdminProducts() {
         </div>
       )}
 
-      {data && data.pagination.pages > 1 && (
-        <div className="mt-4 flex justify-center gap-2">
-          {Array.from({ length: data.pagination.pages }, (_, i) => i + 1).map((p) => (
-            <button
-              key={p}
-              onClick={() => setPage(p)}
-              className={`h-8 w-8 rounded-md text-sm ${p === page ? 'bg-gray-900 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
-            >
-              {p}
-            </button>
-          ))}
+      {hasMore && (
+        <div className="mt-4 flex justify-center">
+          <Button variant="secondary" onClick={loadMore} disabled={loadingMore}>
+            {loadingMore ? 'Loading…' : 'Load More'}
+          </Button>
         </div>
       )}
     </div>

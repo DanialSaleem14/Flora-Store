@@ -1,0 +1,12 @@
+{
+  "name": "flora-store-scripts",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "One-off repo-root scripts (Firestore migration). Not part of the deployed app.",
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "firebase": "^12.16.0",
+    "mongoose": "^8.8.3"
+  }
+}

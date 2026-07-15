@@ -1,9 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { getDashboardStats } from '../../services/dashboardService';
+import { useCurrency } from '../../hooks/useCurrency';
 import { Card, Spinner, PageHeader } from '../../components/ui';
 
 export default function Dashboard() {
+  const formatPrice = useCurrency();
   const { data, isLoading } = useQuery({ queryKey: ['dashboard-stats'], queryFn: getDashboardStats });
 
   if (isLoading || !data) return <Spinner />;
@@ -20,7 +22,7 @@ export default function Dashboard() {
     { label: 'Total Products', value: stats.totalProducts },
     { label: 'Total Visitors', value: stats.totalVisitors.toLocaleString() },
     { label: 'Total Orders', value: stats.totalOrders.toLocaleString() },
-    { label: 'Revenue', value: `$${stats.revenue.toLocaleString()}` },
+    { label: 'Revenue', value: formatPrice(stats.revenue) },
   ];
 
   return (

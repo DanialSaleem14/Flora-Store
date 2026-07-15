@@ -1,0 +1,87 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isAdmin() {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // App-specific profile (role, wishlist, addresses) keyed by Firebase UID.
+    match /users/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+
+      // Self-provisioning on first login — always starts as 'customer'.
+      allow create: if isOwner(uid) && request.resource.data.role == 'customer';
+
+      // Admins can update anyone (e.g. grant admin access to another user).
+      allow update: if isAdmin();
+
+      // A user may update their own doc (name, wishlist, addresses) but never
+      // change their own role via a plain update...
+      allow update: if isOwner(uid) &&
+        request.resource.data.role == resource.data.role;
+
+      // ...except this one bootstrap path: self-promote to admin, only while
+      // no admin exists yet. Paired with the meta/adminBootstrap rule below —
+      // both writes happen in the same client-side transaction. The doc may
+      // not exist yet at all (very first run), which counts as "not claimed".
+      allow update: if isOwner(uid) &&
+        resource.data.role == 'customer' &&
+        request.resource.data.role == 'admin' &&
+        (!exists(/databases/$(database)/documents/meta/adminBootstrap) ||
+         get(/databases/$(database)/documents/meta/adminBootstrap).data.claimed == false);
+
+      allow delete: if isAdmin();
+    }
+
+    // Bootstrap gate: flips (missing or false) -> true exactly once, by
+    // whoever claims the first admin slot (see users/{uid} rule above).
+    match /meta/adminBootstrap {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.claimed == true;
+      allow update: if isSignedIn() &&
+        resource.data.claimed == false &&
+        request.resource.data.claimed == true;
+    }
+
+    match /products/{productId} {
+      allow read: if (resource.data.published == true && resource.data.archived == false) || isAdmin();
+      allow write: if isAdmin();
+    }
+
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /pages/{pageId} {
+      allow read: if true;
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin() && resource.data.isSystem == false;
+    }
+
+    match /settings/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Write-only newsletter mailbox — nobody can read signups back via the client.
+    match /newsletter/{entryId} {
+      allow create: if request.resource.data.keys().hasOnly(['email', 'createdAt']) &&
+        request.resource.data.email is string;
+      allow read, update, delete: if false;
+    }
+  }
+}

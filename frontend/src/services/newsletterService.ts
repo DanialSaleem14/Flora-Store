@@ -1,4 +1,7 @@
-import { api } from './api';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '../config/firebase';
 
-export const subscribeNewsletter = (email: string) =>
-  api.post<{ success: boolean; message: string }>('/newsletter/subscribe', { email }).then((r) => r.data);
+export const subscribeNewsletter = async (email: string) => {
+  await addDoc(collection(db, 'newsletter'), { email, createdAt: serverTimestamp() });
+  return { success: true, message: 'Subscribed successfully.' };
+};

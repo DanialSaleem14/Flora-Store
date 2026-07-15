@@ -7,3 +7,7 @@ dist-ssr/
 !.env.example
 *.log
 .firebase/
+
+# generated at build time by frontend/scripts/generate-seo-files.mjs
+frontend/public/sitemap.xml
+frontend/public/robots.txt
