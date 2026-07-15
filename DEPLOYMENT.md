@@ -1,13 +1,12 @@
 # Deploying Flora
 
-100% Firebase — no separate server to deploy or pay for. Firebase Hosting serves the static frontend; Firestore, Auth, and Storage handle everything else directly from the browser.
+100% Firebase — no separate server to deploy or pay for, and no Blaze billing plan required. Firebase Hosting serves the static frontend; Firestore and Auth handle everything else directly from the browser. Images are stored as compressed base64 data directly on Firestore documents rather than in Firebase Storage (which now requires Blaze) — see the README's "How data flows" section.
 
 ## First-time setup (already done for flora-store-c4f9e)
 
 1. Firebase Console → **Authentication** → Get started → enable **Email/Password**.
 2. Firebase Console → **Firestore Database** → Create database (pick a region — permanent choice).
-3. Firebase Console → **Storage** → Get started, then paste `firebase-storage.rules` into Storage → Rules → Publish.
-4. `firebase deploy --only firestore` — publishes `firestore.rules` + `firestore.indexes.json`.
+3. `firebase deploy --only firestore` — publishes `firestore.rules` + `firestore.indexes.json`.
 
 ## Every deploy after that
 
@@ -19,10 +18,10 @@ cd ..
 firebase deploy --only hosting
 ```
 
-Or deploy hosting + Firestore rules + Storage rules together:
+Or deploy hosting + Firestore rules together:
 
 ```bash
-firebase deploy --only hosting,firestore,storage
+firebase deploy --only hosting,firestore
 ```
 
 Live URL: **https://flora-store-c4f9e.web.app**
