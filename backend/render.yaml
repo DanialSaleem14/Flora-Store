@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: flora-store-api
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: CLIENT_URL
+        value: https://flora-store-c4f9e.web.app
+      - key: MONGO_URI
+        sync: false
+      - key: FIREBASE_PROJECT_ID
+        value: flora-store-c4f9e
+      - key: FIREBASE_API_KEY
+        sync: false

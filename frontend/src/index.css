@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--store-font, "Inter"), ui-sans-serif, system-ui, sans-serif;
+}
+
+:root {
+  --store-primary: #1a1a1a;
+  --store-secondary: #f5f5f5;
+  --store-accent: #4f46e5;
+  --store-radius: 8px;
+  --store-font: "Inter";
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--store-font), ui-sans-serif, system-ui, sans-serif;
+  color: var(--store-primary);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--store-primary) 25%, transparent);
+  border-radius: 999px;
+}
+
+.store-btn {
+  border-radius: var(--store-radius);
+  background-color: var(--store-accent);
+  color: white;
+  transition: opacity 0.15s ease;
+}
+.store-btn:hover {
+  opacity: 0.9;
+}
+
+.dark {
+  color-scheme: dark;
+}
