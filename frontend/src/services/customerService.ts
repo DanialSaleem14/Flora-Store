@@ -53,8 +53,17 @@ export const getWishlist = async () => {
   const ids: string[] = snap.exists() ? snap.data().wishlist || [] : [];
   if (!ids.length) return { success: true, wishlist: [] as Product[] };
 
-  // Firestore 'in' queries cap at 30 IDs — fine at this app's scale.
-  const productsSnap = await getDocs(query(collection(db, 'products'), where(documentId(), 'in', ids.slice(0, 30))));
+  // Firestore 'in' queries cap at 30 IDs — fine at this app's scale. The
+  // published/archived filters are required, not just filtering: a customer
+  // (non-admin) query without them is rejected outright by firestore.rules.
+  const productsSnap = await getDocs(
+    query(
+      collection(db, 'products'),
+      where(documentId(), 'in', ids.slice(0, 30)),
+      where('published', '==', true),
+      where('archived', '==', false)
+    )
+  );
   const wishlist = productsSnap.docs.map((d) => {
     const data = d.data();
     return {

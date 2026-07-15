@@ -1,68 +1,70 @@
 import { useQuery } from '@tanstack/react-query';
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { getDashboardStats } from '../../services/dashboardService';
-import { getProducts } from '../../services/productService';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { getOrderStatusBreakdown, getTopSellingProducts } from '../../services/orderService';
 import { useCurrency } from '../../hooks/useCurrency';
-import { Card, PageHeader, Spinner } from '../../components/ui';
+import { Card, PageHeader, Spinner, EmptyState } from '../../components/ui';
+import type { OrderStatus } from '../../types';
+
+const STATUS_LABELS: Record<OrderStatus, string> = {
+  pending: 'Pending',
+  processing: 'Processing',
+  out_for_delivery: 'Out for Delivery',
+  delivered: 'Delivered',
+  cancelled: 'Cancelled',
+};
 
 export default function Analytics() {
   const formatPrice = useCurrency();
-  const { data, isLoading } = useQuery({ queryKey: ['dashboard-stats'], queryFn: getDashboardStats });
-  const { data: topProducts } = useQuery({
-    queryKey: ['analytics-top-products'],
-    queryFn: () => getProducts({ sort: 'featured', limit: 5, includeUnpublished: true }),
+  const { data: breakdown, isLoading: loadingBreakdown } = useQuery({
+    queryKey: ['order-status-breakdown'],
+    queryFn: getOrderStatusBreakdown,
+  });
+  const { data: topProducts, isLoading: loadingTop } = useQuery({
+    queryKey: ['top-selling-products'],
+    queryFn: () => getTopSellingProducts(5),
   });
 
-  if (isLoading || !data) return <Spinner />;
+  if (loadingBreakdown || loadingTop) return <Spinner />;
 
-  const chartData = data.charts.labels.map((label, i) => ({
-    label,
-    visitors: data.charts.visitors[i],
-    orders: data.charts.orders[i],
-  }));
+  const chartData = breakdown
+    ? (Object.keys(STATUS_LABELS) as OrderStatus[]).map((status) => ({ label: STATUS_LABELS[status], count: breakdown[status] }))
+    : [];
 
   return (
     <div>
       <PageHeader title="Analytics" />
-      <p className="mb-4 text-xs text-gray-400">Visitor/order trends use placeholder data until real tracking is wired up.</p>
+      <p className="mb-4 text-xs text-gray-400">Computed from real order data.</p>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>
-          <h3 className="mb-4 font-semibold">Visitors</h3>
-          <ResponsiveContainer width="100%" height={250}>
-            <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
-              <XAxis dataKey="label" fontSize={12} />
-              <YAxis fontSize={12} />
-              <Tooltip />
-              <Line type="monotone" dataKey="visitors" stroke="#4f46e5" strokeWidth={2} dot={false} />
-            </LineChart>
-          </ResponsiveContainer>
-        </Card>
-
-        <Card>
-          <h3 className="mb-4 font-semibold">Orders</h3>
+          <h3 className="mb-4 font-semibold">Orders by Status</h3>
           <ResponsiveContainer width="100%" height={250}>
             <BarChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
-              <XAxis dataKey="label" fontSize={12} />
-              <YAxis fontSize={12} />
+              <XAxis dataKey="label" fontSize={11} interval={0} angle={-15} textAnchor="end" height={50} />
+              <YAxis fontSize={12} allowDecimals={false} />
               <Tooltip />
-              <Bar dataKey="orders" fill="#1a1a1a" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="count" fill="#1a1a1a" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </Card>
 
-        <Card className="lg:col-span-2">
+        <Card>
           <h3 className="mb-4 font-semibold">Top Selling Products</h3>
-          <ul className="divide-y divide-gray-100 text-sm">
-            {topProducts?.products.map((p) => (
-              <li key={p._id} className="flex items-center justify-between py-2">
-                <span>{p.name}</span>
-                <span className="text-gray-500">{formatPrice(p.price)}</span>
-              </li>
-            ))}
-          </ul>
+          {!topProducts?.length ? (
+            <EmptyState title="No sales yet" subtitle="Top sellers will appear once orders start coming in." />
+          ) : (
+            <ul className="divide-y divide-gray-100 text-sm">
+              {topProducts.map((p) => (
+                <li key={p.productId} className="flex items-center justify-between py-2">
+                  <span>
+                    {p.name} <span className="text-gray-400">× {p.quantity}</span>
+                  </span>
+                  <span className="text-gray-500">{formatPrice(p.revenue)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </Card>
       </div>
     </div>

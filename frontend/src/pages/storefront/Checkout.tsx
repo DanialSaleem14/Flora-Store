@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useCart } from '../../context/CartContext';
 import { useCurrency } from '../../hooks/useCurrency';
+import { placeOrder } from '../../services/orderService';
+import { getErrorMessage } from '../../services/api';
 import { Field, Input, Button, Card } from '../../components/ui';
 
 interface CheckoutForm {
@@ -22,16 +24,35 @@ export default function Checkout() {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
-  } = useForm<CheckoutForm>({ defaultValues: { paymentMethod: 'card' } });
+  } = useForm<CheckoutForm>({ defaultValues: { paymentMethod: 'cod' } });
 
-  const onSubmit = async () => {
-    // NOTE: no payment gateway is wired up yet (Stripe/PayPal are future work).
-    // This placeholder simulates order placement so the flow can be exercised end-to-end.
-    await new Promise((r) => setTimeout(r, 600));
-    toast.success('Order placed! (Checkout is a placeholder — payments are not yet processed.)');
-    clearCart();
-    navigate('/');
+  const paymentMethod = watch('paymentMethod');
+
+  const onSubmit = async (data: CheckoutForm) => {
+    if (data.paymentMethod === 'card') {
+      toast.error('Card payment is not connected yet — please choose Cash on Delivery for now.');
+      return;
+    }
+    try {
+      await placeOrder({
+        items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
+        shippingAddress: {
+          fullName: data.fullName,
+          address: data.address,
+          city: data.city,
+          zip: data.zip,
+          country: data.country,
+        },
+        paymentMethod: data.paymentMethod,
+      });
+      toast.success('Order placed!');
+      clearCart();
+      navigate('/account/orders');
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    }
   };
 
   if (!items.length) {
@@ -79,17 +100,17 @@ export default function Checkout() {
           <Card className="space-y-2">
             <h2 className="font-semibold">Payment</h2>
             <p className="text-xs text-gray-500">
-              Payment integration (Stripe / PayPal) is not yet connected — this is a placeholder for future work.
+              Card payment (Stripe / PayPal) is not connected yet — Cash on Delivery works today.
             </p>
-            <label className="flex items-center gap-2 text-sm">
-              <input type="radio" value="card" {...register('paymentMethod')} defaultChecked /> Credit / Debit Card
-            </label>
             <label className="flex items-center gap-2 text-sm">
               <input type="radio" value="cod" {...register('paymentMethod')} /> Cash on Delivery
             </label>
+            <label className="flex items-center gap-2 text-sm text-gray-400">
+              <input type="radio" value="card" {...register('paymentMethod')} /> Credit / Debit Card (coming soon)
+            </label>
           </Card>
 
-          <Button type="submit" disabled={isSubmitting} className="w-full">
+          <Button type="submit" disabled={isSubmitting || paymentMethod === 'card'} className="w-full">
             {isSubmitting ? 'Placing order…' : 'Place Order'}
           </Button>
         </form>

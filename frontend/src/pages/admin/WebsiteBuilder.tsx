@@ -69,7 +69,7 @@ export default function WebsiteBuilder() {
           </Field>
           <div>
             <span className="mb-1 block text-sm font-medium text-gray-700">Logo</span>
-            <ImageUploader multiple={false} folder="website" images={form.logo ? [form.logo] : []} onChange={(i) => setForm({ ...form, logo: i[0] || '' })} />
+            <ImageUploader multiple={false} images={form.logo ? [form.logo] : []} onChange={(i) => setForm({ ...form, logo: i[0] || '' })} />
           </div>
         </Card>
 
@@ -91,7 +91,7 @@ export default function WebsiteBuilder() {
           </div>
           <div>
             <span className="mb-1 block text-sm font-medium text-gray-700">Hero Image</span>
-            <ImageUploader multiple={false} folder="website" images={form.hero.image ? [form.hero.image] : []} onChange={(i) => setForm({ ...form, hero: { ...form.hero, image: i[0] || '' } })} />
+            <ImageUploader multiple={false} images={form.hero.image ? [form.hero.image] : []} onChange={(i) => setForm({ ...form, hero: { ...form.hero, image: i[0] || '' } })} />
           </div>
         </Card>
 

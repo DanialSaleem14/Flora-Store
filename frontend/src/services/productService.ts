@@ -111,8 +111,14 @@ export const getProducts = async (opts: ProductQuery = {}): Promise<ProductPage>
   return { success: true, products, nextCursor, hasMore: !!nextCursor };
 };
 
+// Storefront-only (ProductDetail.tsx) — the published/archived filters are
+// required, not just filtering: firestore.rules only allows non-admins to
+// read products matching that exact shape, so a query without them is
+// rejected outright for a signed-out or customer caller, not silently empty.
 export const getProductBySlug = async (slug: string) => {
-  const snap = await getDocs(query(PRODUCTS, where('slug', '==', slug), fbLimit(1)));
+  const snap = await getDocs(
+    query(PRODUCTS, where('slug', '==', slug), where('published', '==', true), where('archived', '==', false), fbLimit(1))
+  );
   if (snap.empty) throw new Error('Product not found');
   return { success: true, product: toProduct(snap.docs[0]) };
 };
@@ -158,6 +164,8 @@ export const updateProduct = async (id: string, data: Partial<Product>) => {
 };
 
 export const deleteProduct = async (id: string) => {
+  // Images are stored as data URLs inline on the document itself, so
+  // deleting the document deletes the images too — no separate cleanup step.
   await deleteDoc(doc(PRODUCTS, id));
   return { success: true, message: 'Product deleted' };
 };

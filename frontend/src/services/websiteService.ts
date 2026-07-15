@@ -62,17 +62,47 @@ const flatten = (obj: Record<string, unknown>, prefix = ''): Record<string, unkn
   return out;
 };
 
+// Plain (non-Firestore-path) deep merge, used only when writing a brand new
+// document — there's no existing doc to apply dot-path partial updates onto.
+const deepMerge = <T extends Record<string, unknown>>(base: T, patch: Partial<T>): T => {
+  const out: Record<string, unknown> = { ...base };
+  for (const [key, value] of Object.entries(patch)) {
+    if (value !== null && typeof value === 'object' && !Array.isArray(value) && typeof out[key] === 'object') {
+      out[key] = deepMerge(out[key] as Record<string, unknown>, value as Record<string, unknown>);
+    } else {
+      out[key] = value;
+    }
+  }
+  return out as T;
+};
+
 export const getWebsite = async () => {
   const snap = await getDoc(WEBSITE_REF);
-  if (!snap.exists()) {
+  if (snap.exists()) return { success: true, website: snap.data() as Website };
+
+  // Doc doesn't exist yet. Try to create it with defaults (works if the
+  // caller is an admin); if not (any anonymous/customer visitor loading the
+  // storefront before an admin ever has), firestore.rules will reject the
+  // write — that's expected, not an error, so just serve the defaults
+  // in-memory rather than letting the whole storefront crash on it.
+  try {
     await setDoc(WEBSITE_REF, DEFAULT_WEBSITE);
-    return { success: true, website: DEFAULT_WEBSITE };
+  } catch {
+    // not authorized to create it — fine, defaults below still render.
   }
-  return { success: true, website: snap.data() as Website };
+  return { success: true, website: DEFAULT_WEBSITE };
 };
 
 export const updateWebsite = async (patch: Partial<Website>) => {
-  await updateDoc(WEBSITE_REF, flatten(patch as Record<string, unknown>));
   const snap = await getDoc(WEBSITE_REF);
-  return { success: true, website: snap.data() as Website };
+  if (!snap.exists()) {
+    // First-ever save (no one has loaded the storefront as an admin yet to
+    // trigger the self-heal in getWebsite) — write a full document instead
+    // of updateDoc, which requires the doc to already exist.
+    await setDoc(WEBSITE_REF, deepMerge(DEFAULT_WEBSITE as unknown as Record<string, unknown>, patch as Record<string, unknown>));
+  } else {
+    await updateDoc(WEBSITE_REF, flatten(patch as Record<string, unknown>));
+  }
+  const updated = await getDoc(WEBSITE_REF);
+  return { success: true, website: updated.data() as Website };
 };

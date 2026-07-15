@@ -147,3 +147,34 @@ export interface CartItem {
   quantity: number;
   stock: number;
 }
+
+export type OrderStatus = 'pending' | 'processing' | 'out_for_delivery' | 'delivered' | 'cancelled';
+
+export interface OrderItem {
+  productId: string;
+  name: string;
+  image: string;
+  price: number;
+  quantity: number;
+}
+
+export interface Order {
+  _id: string;
+  customerId: string;
+  customerName: string;
+  customerEmail: string;
+  items: OrderItem[];
+  subtotal: number;
+  total: number;
+  shippingAddress: {
+    fullName: string;
+    address: string;
+    city: string;
+    zip: string;
+    country: string;
+  };
+  paymentMethod: 'card' | 'cod';
+  status: OrderStatus;
+  createdAt: string;
+  deliveredAt: string | null;
+}

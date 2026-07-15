@@ -77,11 +77,28 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // Write-only newsletter mailbox — nobody can read signups back via the client.
+    // Newsletter mailbox — anyone can subscribe, only admins can see the list.
     match /newsletter/{entryId} {
       allow create: if request.resource.data.keys().hasOnly(['email', 'createdAt']) &&
         request.resource.data.email is string;
-      allow read, update, delete: if false;
+      allow read: if isAdmin();
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
+
+    match /orders/{orderId} {
+      // A signed-in customer can read their own orders; admins can read all.
+      allow read: if isSignedIn() && (resource.data.customerId == request.auth.uid || isAdmin());
+
+      // A customer can only create an order for themselves, starting as
+      // 'pending' — no writing someone else's order or skipping the queue.
+      allow create: if isSignedIn() &&
+        request.resource.data.customerId == request.auth.uid &&
+        request.resource.data.status == 'pending';
+
+      // Only admins change order status (pending -> processing -> ... -> delivered).
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
     }
   }
 }

@@ -52,7 +52,14 @@ function App() {
           <Route path="/categories" element={<Categories />} />
           <Route path="/categories/:slug" element={<CategoryDetail />} />
           <Route path="/cart" element={<Cart />} />
-          <Route path="/checkout" element={<Checkout />} />
+          <Route
+            path="/checkout"
+            element={
+              <CustomerProtectedRoute>
+                <Checkout />
+              </CustomerProtectedRoute>
+            }
+          />
           <Route path="/pages/:slug" element={<DynamicPage />} />
 
           {/* Customer auth (standalone, no header/footer chrome needed but kept for nav consistency) */}

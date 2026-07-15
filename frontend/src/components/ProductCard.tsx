@@ -83,12 +83,12 @@ export function ProductCard({ product }: { product: Product }) {
         </button>
       </Link>
 
-      <div className="flex flex-1 flex-col gap-1 p-3">
-        <Link to={`/products/${product.slug}`} className="line-clamp-2 text-sm font-medium text-gray-900">
+      <div className="flex flex-1 flex-col gap-1 p-2 sm:p-3">
+        <Link to={`/products/${product.slug}`} className="line-clamp-2 text-xs font-medium text-gray-900 sm:text-sm">
           {product.name}
         </Link>
-        <div className="flex items-center gap-2">
-          <span className="font-semibold" style={{ color: 'var(--store-accent)' }}>
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+          <span className="text-sm font-semibold sm:text-base" style={{ color: 'var(--store-accent)' }}>
             {formatPrice(price)}
           </span>
           {hasDiscount && <span className="text-xs text-gray-400 line-through">{formatPrice(product.price)}</span>}
@@ -97,7 +97,7 @@ export function ProductCard({ product }: { product: Product }) {
           type="button"
           onClick={handleAddToCart}
           disabled={product.stock <= 0}
-          className="store-btn mt-2 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
+          className="store-btn mt-2 py-1.5 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-50 sm:py-2 sm:text-sm"
         >
           {product.stock <= 0 ? 'Out of Stock' : 'Add to Cart'}
         </button>

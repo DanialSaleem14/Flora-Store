@@ -1,16 +1,20 @@
 import { useRef, useState, type DragEvent } from 'react';
 import toast from 'react-hot-toast';
-import { uploadImagesToStorage } from '../services/storageService';
+import { compressImagesToDataUrls, dataUrlByteSize, MAX_TOTAL_IMAGES_BYTES } from '../utils/imageEncode';
 import { getErrorMessage } from '../services/api';
 
 interface ImageUploaderProps {
   images: string[];
   onChange: (images: string[]) => void;
   multiple?: boolean;
-  folder?: string;
 }
 
-export function ImageUploader({ images, onChange, multiple = true, folder = 'store' }: ImageUploaderProps) {
+// Images are compressed client-side and stored as base64 data URLs directly
+// on the Firestore document (product/category/website) — no Firebase Storage
+// involved, so nothing to upload to or delete from separately. Removing an
+// image is just removing it from the array; it's gone the moment the
+// document is saved.
+export function ImageUploader({ images, onChange, multiple = true }: ImageUploaderProps) {
   const [dragActive, setDragActive] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -23,8 +27,16 @@ export function ImageUploader({ images, onChange, multiple = true, folder = 'sto
     setUploading(true);
     setProgress(0);
     try {
-      const urls = await uploadImagesToStorage(files, folder, setProgress);
-      onChange(multiple ? [...images, ...urls] : urls);
+      const dataUrls = await compressImagesToDataUrls(files, setProgress);
+      const next = multiple ? [...images, ...dataUrls] : dataUrls;
+
+      const totalBytes = next.reduce((sum, url) => sum + dataUrlByteSize(url), 0);
+      if (totalBytes > MAX_TOTAL_IMAGES_BYTES) {
+        toast.error('These images together are too large to save (Firestore documents cap at ~1MB). Try fewer images or smaller photos.');
+        return;
+      }
+
+      onChange(next);
     } catch (err) {
       toast.error(getErrorMessage(err));
     } finally {
@@ -62,13 +74,13 @@ export function ImageUploader({ images, onChange, multiple = true, folder = 'sto
           className="hidden"
           onChange={(e) => handleFiles(e.target.files)}
         />
-        {uploading ? `Uploading… ${progress}%` : 'Drag & drop images here, or click to browse'}
+        {uploading ? `Processing… ${progress}%` : 'Drag & drop images here, or click to browse'}
       </div>
 
       {images.length > 0 && (
         <div className="mt-3 grid grid-cols-3 gap-3 sm:grid-cols-4">
           {images.map((src, idx) => (
-            <div key={src + idx} className="group relative aspect-square overflow-hidden rounded-md border">
+            <div key={src.slice(0, 64) + idx} className="group relative aspect-square overflow-hidden rounded-md border">
               <img src={src} alt="" loading="lazy" className="h-full w-full object-cover" />
               <button
                 type="button"

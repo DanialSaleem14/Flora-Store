@@ -50,6 +50,26 @@
       { "fieldPath": "categoryId", "order": "ASCENDING" },
       { "fieldPath": "featured", "order": "DESCENDING" },
       { "fieldPath": "createdAt", "order": "DESCENDING" }
+    ]},
+    { "collectionGroup": "orders", "queryScope": "COLLECTION", "fields": [
+      { "fieldPath": "customerId", "order": "ASCENDING" },
+      { "fieldPath": "createdAt", "order": "DESCENDING" }
+    ]},
+    { "collectionGroup": "orders", "queryScope": "COLLECTION", "fields": [
+      { "fieldPath": "status", "order": "ASCENDING" },
+      { "fieldPath": "createdAt", "order": "DESCENDING" }
+    ]},
+    { "collectionGroup": "orders", "queryScope": "COLLECTION", "fields": [
+      { "fieldPath": "status", "order": "ASCENDING" },
+      { "fieldPath": "deliveredAt", "order": "ASCENDING" }
+    ]},
+    { "collectionGroup": "products", "queryScope": "COLLECTION", "fields": [
+      { "fieldPath": "archived", "order": "ASCENDING" },
+      { "fieldPath": "stock", "order": "ASCENDING" }
+    ]},
+    { "collectionGroup": "orders", "queryScope": "COLLECTION", "fields": [
+      { "fieldPath": "status", "order": "ASCENDING" },
+      { "fieldPath": "total", "order": "ASCENDING" }
     ]}
   ],
   "fieldOverrides": []

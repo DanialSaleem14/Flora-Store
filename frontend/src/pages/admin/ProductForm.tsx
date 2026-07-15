@@ -111,7 +111,7 @@ export default function ProductForm() {
 
           <Card className="space-y-4">
             <h3 className="font-medium">Images</h3>
-            <ImageUploader images={form.images} onChange={(images) => setForm({ ...form, images })} folder="products" />
+            <ImageUploader images={form.images} onChange={(images) => setForm({ ...form, images })} />
           </Card>
 
           <Card className="space-y-4">

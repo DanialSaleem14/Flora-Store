@@ -84,7 +84,6 @@ export default function AdminCategories() {
               <span className="mb-1 block text-sm font-medium text-gray-700">Image</span>
               <ImageUploader
                 multiple={false}
-                folder="categories"
                 images={form.image ? [form.image] : []}
                 onChange={(imgs) => setForm({ ...form, image: imgs[0] || '' })}
               />

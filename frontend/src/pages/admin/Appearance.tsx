@@ -104,12 +104,12 @@ export default function Appearance() {
 
         <Card className="space-y-4">
           <h3 className="font-medium">Favicon</h3>
-          <ImageUploader multiple={false} folder="website" images={appearance.favicon ? [appearance.favicon] : []} onChange={(i) => update({ favicon: i[0] || '' })} />
+          <ImageUploader multiple={false} images={appearance.favicon ? [appearance.favicon] : []} onChange={(i) => update({ favicon: i[0] || '' })} />
         </Card>
 
         <Card className="space-y-4">
           <h3 className="font-medium">Banner Images</h3>
-          <ImageUploader folder="website" images={appearance.bannerImages} onChange={(i) => update({ bannerImages: i })} />
+          <ImageUploader images={appearance.bannerImages} onChange={(i) => update({ bannerImages: i })} />
         </Card>
       </div>
     </div>
